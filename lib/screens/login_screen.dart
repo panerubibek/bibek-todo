@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:ncmt_bibek/constants/colors.dart';
+import 'package:ncmt_bibek/providers/auth_provider.dart';
+import 'package:ncmt_bibek/screens/dashboard.dart';
 import 'package:ncmt_bibek/screens/registration_screen.dart';
 import 'package:ncmt_bibek/widgets/primary_button.dart';
 import 'package:ncmt_bibek/widgets/secondary_outlined_icon_button.dart';
+import 'package:provider/provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,8 +19,41 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isPasswordHidden = true;
+
+
+Future<void> _handleLogin() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    // Trigger the register action via Provider
+    final result = await context.read<AuthenticationProvider>().login(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
+
+    // Guard against calling context methods if the widget was unmounted while waiting
+    if (!mounted) return;
+
+    // Handle Sealed Class Result (or String error depending on your AuthProvider structure)
+    switch (result) {
+      case AuthSuccess():
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const Dashboard()),
+        );
+      case AuthFailure(:final message):
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: Colors.red,
+          ),
+        );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<AuthenticationProvider>();
+
     return Scaffold(
       backgroundColor: scaffoldColor,
       body: Padding(
@@ -90,9 +126,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           height: 52,
                           child: ElevatedButton(
                             onPressed: () {
-                              if (_formKey.currentState!.validate()) {
-                                // Login logic here
-                              }
+                             _handleLogin();
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: primaryColor,
@@ -102,7 +136,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 borderRadius: BorderRadius.circular(16),
                               ),
                             ),
-                            child: const Text(
+                            child: provider.isLoading ? CircularProgressIndicator() : const Text(
                               'Login',
                               style: TextStyle(
                                 fontSize: 16,

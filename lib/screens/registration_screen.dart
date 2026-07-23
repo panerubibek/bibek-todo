@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:ncmt_bibek/constants/colors.dart';
+import 'package:ncmt_bibek/providers/auth_provider.dart';
+import 'package:ncmt_bibek/screens/dashboard.dart';
+import 'package:ncmt_bibek/widgets/custom_textformfield.dart';
+import 'package:provider/provider.dart';
 
 class RegistrationScreen extends StatefulWidget {
   const RegistrationScreen({super.key});
@@ -16,8 +20,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  bool _hidePassword = true;
-  bool _hideConfirmPassword = true;
+
 
   @override
   void dispose() {
@@ -28,23 +31,40 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     super.dispose();
   }
 
-  InputDecoration _inputDecoration({
-    required String label,
-    required String hint,
-    Widget? suffixIcon,
-  }) {
-    return InputDecoration(
-      labelText: label,
-      hintText: hint,
-      suffixIcon: suffixIcon,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-    );
+
+Future<void> _handleRegister() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    // Trigger the register action via Provider
+    final result = await context.read<AuthenticationProvider>().register(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
+
+    // Guard against calling context methods if the widget was unmounted while waiting
+    if (!mounted) return;
+
+    // Handle Sealed Class Result (or String error depending on your AuthProvider structure)
+    switch (result) {
+      case AuthSuccess():
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const Dashboard()),
+        );
+      case AuthFailure(:final message):
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: Colors.red,
+          ),
+        );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+final isLoading = context.watch<AuthenticationProvider>().isLoading;
+
     return Scaffold(
       backgroundColor: scaffoldColor,
       appBar: AppBar(
@@ -92,71 +112,19 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
                     const SizedBox(height: 30),
 
-                    TextFormField(
-                      controller: _nameController,
-                      decoration: _inputDecoration(
-                        label: "Full Name",
-                        hint: "John Doe",
-                      ),
-                    ),
+                   CustomTextFormField(controller: _nameController, labelText: 'Name', hintText: 'Full Name'),
 
                     const SizedBox(height: 18),
 
-                    TextFormField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: _inputDecoration(
-                        label: "Email",
-                        hint: "example@email.com",
-                      ),
-                    ),
+                    CustomTextFormField(controller: _emailController, labelText: 'Email', hintText: 'Email'),
 
                     const SizedBox(height: 18),
 
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: _hidePassword,
-                      decoration: _inputDecoration(
-                        label: "Password",
-                        hint: "Enter password",
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _hidePassword
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _hidePassword = !_hidePassword;
-                            });
-                          },
-                        ),
-                      ),
-                    ),
+                   CustomTextFormField(controller: _passwordController, labelText: "Password", hintText: "Password", isPassword: true,),
 
                     const SizedBox(height: 18),
 
-                    TextFormField(
-                      controller: _confirmPasswordController,
-                      obscureText: _hideConfirmPassword,
-                      decoration: _inputDecoration(
-                        label: "Confirm Password",
-                        hint: "Re-enter password",
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _hideConfirmPassword
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _hideConfirmPassword =
-                                  !_hideConfirmPassword;
-                            });
-                          },
-                        ),
-                      ),
-                    ),
+                   CustomTextFormField(controller: _confirmPasswordController, labelText: "Confirm Password", hintText: "Confirm Password", isPassword: true,),
 
                     const SizedBox(height: 28),
 
@@ -173,11 +141,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                           ),
                         ),
                         onPressed: () {
-                          if (_formKey.currentState!.validate()) {
-                            // Register
-                          }
+                         _handleRegister();
                         },
-                        child: const Text(
+                        child: isLoading ? CircularProgressIndicator() : const Text(
                           "Create Account",
                           style: TextStyle(
                             fontSize: 16,
