@@ -112,7 +112,12 @@ final isLoading = context.watch<AuthenticationProvider>().isLoading;
 
                     const SizedBox(height: 30),
 
-                   CustomTextFormField(controller: _nameController, labelText: 'Name', hintText: 'Full Name'),
+                   CustomTextFormField(controller: _nameController, labelText: 'Name', hintText: 'Full Name', validator: (p0) {
+                     if(p0 == null || p0.isEmpty){
+                      return 'Cant be empty';
+                     }
+                     return null;
+                   },),
 
                     const SizedBox(height: 18),
 
