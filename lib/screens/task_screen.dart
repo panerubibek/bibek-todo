@@ -114,101 +114,160 @@ class TaskScreen extends StatelessWidget {
         title: const Text("Tasko"),
       ),
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: provider.taskStream,
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(
-              child: Text(snapshot.error.toString()),
-            );
-          }
+  stream: provider.taskStream,
+  builder: (context, snapshot) {
+    if (snapshot.hasError) {
+      return Center(
+        child: Text(snapshot.error.toString()),
+      );
+    }
 
-          if (snapshot.connectionState ==
-              ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          }
+    if (snapshot.connectionState == ConnectionState.waiting) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
 
-          if (!snapshot.hasData ||
-              snapshot.data!.docs.isEmpty) {
-            return const Center(
-              child: Text("No Tasks Yet"),
-            );
-          }
+    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+      return const Center(
+        child: Text("No Tasks Yet"),
+      );
+    }
 
-          final tasks = snapshot.data!.docs;
+    final tasks = snapshot.data!.docs;
 
-          return ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: tasks.length,
-            separatorBuilder: (_, __) =>
-                const SizedBox(height: 12),
-            itemBuilder: (_, index) {
-              final doc = tasks[index];
-              final data = doc.data();
+    return ListView.separated(
+      padding: const EdgeInsets.all(16),
+      itemCount: tasks.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final doc = tasks[index];
+        final data = doc.data();
 
-              final completed =
-                  data["completed"] ?? false;
+        final completed = data["completed"] ?? false;
 
-              return Dismissible(
-                key: Key(doc.id),
-                direction: DismissDirection.endToStart,
-                onDismissed: (_) {
-                  provider.deleteTask(doc.id);
-                },
-                background: Container(
-                  alignment: Alignment.centerRight,
-                  padding: const EdgeInsets.only(right: 20),
-                  decoration: BoxDecoration(
-                    color: Colors.red,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Icon(
-                    Icons.delete,
-                    color: Colors.white,
-                  ),
-                ),
-                child: Card(
-                  elevation: 2,
-                  child: ListTile(
-                    onTap: () {
-                      provider.updateTask(
-                        doc.id,
-                        !completed,
-                      );
-                    },
-                    leading: Icon(
-                      completed
-                          ? Icons.check_circle
-                          : Icons.radio_button_unchecked,
-                      color: completed
-                          ? Colors.green
-                          : Colors.grey,
-                    ),
-                    title: Text(
-                      data["title"] ?? "",
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        decoration: completed
-                            ? TextDecoration.lineThrough
-                            : null,
+        return Card(
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: ListTile(
+            title: Text(
+              data["title"] ?? "",
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                decoration:
+                    completed ? TextDecoration.lineThrough : null,
+              ),
+            ),
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                data["description"]?.toString().isNotEmpty == true
+                    ? data["description"]
+                    : "No description",
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            trailing: PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert),
+              onSelected: (value) async {
+                switch (value) {
+                  case "view":
+                  print('view clicked');
+                    break;
+
+                  case "mark":
+                    await provider.updateTask(
+                      doc.id,
+                      !completed,
+                    );
+                    break;
+
+                  case "delete":
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (_) => AlertDialog(
+                        title: const Text("Delete Task"),
+                        content: const Text(
+                          "Are you sure you want to delete this task?",
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () =>
+                                Navigator.pop(context, false),
+                            child: const Text("Cancel"),
+                          ),
+                          FilledButton(
+                            onPressed: () =>
+                                Navigator.pop(context, true),
+                            child: const Text("Delete"),
+                          ),
+                        ],
                       ),
-                    ),
-                    subtitle: Text(
-                      data["description"] ?? "",
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    trailing: const Icon(
-                      Icons.chevron_right,
-                    ),
+                    );
+
+                    if (confirm == true) {
+                      await provider.deleteTask(doc.id);
+                    }
+                    break;
+                }
+              },
+              itemBuilder: (_) => [
+                const PopupMenuItem<String>(
+                  value: "view",
+                  child: Row(
+                    children: [
+                      Icon(Icons.visibility_outlined),
+                      SizedBox(width: 12),
+                      Text("View Task"),
+                    ],
                   ),
                 ),
-              );
-            },
-          );
-        },
-      ),
+                PopupMenuItem<String>(
+                  value: "mark",
+                  child: Row(
+                    children: [
+                      Icon(
+                        completed
+                            ? Icons.radio_button_unchecked
+                            : Icons.check_circle_outline,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        completed
+                            ? "Mark as Pending"
+                            : "Mark as Completed",
+                      ),
+                    ],
+                  ),
+                ),
+                const PopupMenuDivider(),
+                const PopupMenuItem<String>(
+                  value: "delete",
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.delete_outline,
+                        color: Colors.red,
+                      ),
+                      SizedBox(width: 12),
+                      Text(
+                        "Delete",
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  },
+),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddTaskBottomSheet(context),
         icon: const Icon(Icons.add),
