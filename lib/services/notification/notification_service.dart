@@ -24,12 +24,19 @@ class NotificationService {
     await plugin.initialize( settings: settings);
   }
 
+  AndroidFlutterLocalNotificationsPlugin? get _android => plugin
+      .resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin
+      >();
+
   Future<void> requestPermission() async {
-    await plugin
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.requestNotificationsPermission();
+    await _android?.requestNotificationsPermission();
+
+    // Android 14+ denies SCHEDULE_EXACT_ALARM by default; this opens the
+    // "Alarms & reminders" settings screen so the user can grant it.
+    if (await _android?.canScheduleExactNotifications() == false) {
+      await _android?.requestExactAlarmsPermission();
+    }
   }
 
   NotificationDetails notificationDetails() {
@@ -49,6 +56,8 @@ class NotificationService {
     required String title,
     required String body,
   }) async {
+    final canBeExact = await _android?.canScheduleExactNotifications() ?? true;
+
     await plugin.zonedSchedule(
       id: id,
       title: title,
@@ -57,7 +66,9 @@ class NotificationService {
         tz.local,
       ).add(const Duration(seconds: 10)),
       notificationDetails: notificationDetails(),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      androidScheduleMode: canBeExact
+          ? AndroidScheduleMode.exactAllowWhileIdle
+          : AndroidScheduleMode.inexactAllowWhileIdle,
       matchDateTimeComponents: null,
     );
   }
