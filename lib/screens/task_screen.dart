@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:ncmt_bibek/services/notification/notification_service.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/task_provider.dart';
@@ -15,9 +16,7 @@ class TaskScreen extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      constraints: BoxConstraints(
-        minHeight: 700
-      ),
+      constraints: BoxConstraints(minHeight: 700),
       builder: (_) {
         return Padding(
           padding: EdgeInsets.only(
@@ -33,10 +32,7 @@ class TaskScreen extends StatelessWidget {
                 children: [
                   const Text(
                     "Add New Task",
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                   ),
 
                   const SizedBox(height: 20),
@@ -69,17 +65,21 @@ class TaskScreen extends StatelessWidget {
                       onPressed: provider.loading
                           ? null
                           : () async {
-                              final title =
-                                  titleController.text.trim();
-                              final description =
-                                  descriptionController.text.trim();
+                              final title = titleController.text.trim();
+                              final description = descriptionController.text
+                                  .trim();
 
                               if (title.isEmpty) return;
 
-                              await provider.addTask(
-                                title,
-                                description,
-                              );
+                              await provider.addTask(title, description);
+                              await NotificationService.instance
+                                  .scheduleNotification(
+                                    id:
+                                        DateTime.now().millisecondsSinceEpoch ~/
+                                        10000,
+                                    title: "Task reminder",
+                                    body: "$title\n$description",
+                                  );
 
                               if (context.mounted) {
                                 Navigator.pop(context);
@@ -89,9 +89,7 @@ class TaskScreen extends StatelessWidget {
                           ? const SizedBox(
                               height: 20,
                               width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                              ),
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Text("Add Task"),
                     ),
@@ -110,164 +108,145 @@ class TaskScreen extends StatelessWidget {
     final provider = context.read<TaskProvider>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Tasko"),
-      ),
+      appBar: AppBar(title: const Text("Tasko")),
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-  stream: provider.taskStream,
-  builder: (context, snapshot) {
-    if (snapshot.hasError) {
-      return Center(
-        child: Text(snapshot.error.toString()),
-      );
-    }
+        stream: provider.taskStream,
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(child: Text(snapshot.error.toString()));
+          }
 
-    if (snapshot.connectionState == ConnectionState.waiting) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
-    }
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-      return const Center(
-        child: Text("No Tasks Yet"),
-      );
-    }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(child: Text("No Tasks Yet"));
+          }
 
-    final tasks = snapshot.data!.docs;
+          final tasks = snapshot.data!.docs;
 
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: tasks.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final doc = tasks[index];
-        final data = doc.data();
+          return ListView.separated(
+            padding: const EdgeInsets.all(16),
+            itemCount: tasks.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              final doc = tasks[index];
+              final data = doc.data();
 
-        final completed = data["completed"] ?? false;
+              final completed = data["completed"] ?? false;
 
-        return Card(
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: ListTile(
-            title: Text(
-              data["title"] ?? "",
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                decoration:
-                    completed ? TextDecoration.lineThrough : null,
-              ),
-            ),
-            subtitle: Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Text(
-                data["description"]?.toString().isNotEmpty == true
-                    ? data["description"]
-                    : "No description",
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            trailing: PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert),
-              onSelected: (value) async {
-                switch (value) {
-                  case "view":
-                  print('view clicked');
-                    break;
+              return Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: ListTile(
+                  title: Text(
+                    data["title"] ?? "",
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      decoration: completed ? TextDecoration.lineThrough : null,
+                    ),
+                  ),
+                  subtitle: Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(
+                      data["description"]?.toString().isNotEmpty == true
+                          ? data["description"]
+                          : "No description",
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  trailing: PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert),
+                    onSelected: (value) async {
+                      switch (value) {
+                        case "view":
+                          print('view clicked');
+                          break;
 
-                  case "mark":
-                    await provider.updateTask(
-                      doc.id,
-                      !completed,
-                    );
-                    break;
+                        case "mark":
+                          await provider.updateTask(doc.id, !completed);
+                          break;
 
-                  case "delete":
-                    final confirm = await showDialog<bool>(
-                      context: context,
-                      builder: (_) => AlertDialog(
-                        title: const Text("Delete Task"),
-                        content: const Text(
-                          "Are you sure you want to delete this task?",
+                        case "delete":
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (_) => AlertDialog(
+                              title: const Text("Delete Task"),
+                              content: const Text(
+                                "Are you sure you want to delete this task?",
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.pop(context, false),
+                                  child: const Text("Cancel"),
+                                ),
+                                FilledButton(
+                                  onPressed: () => Navigator.pop(context, true),
+                                  child: const Text("Delete"),
+                                ),
+                              ],
+                            ),
+                          );
+
+                          if (confirm == true) {
+                            await provider.deleteTask(doc.id);
+                          }
+                          break;
+                      }
+                    },
+                    itemBuilder: (_) => [
+                      const PopupMenuItem<String>(
+                        value: "view",
+                        child: Row(
+                          children: [
+                            Icon(Icons.visibility_outlined),
+                            SizedBox(width: 12),
+                            Text("View Task"),
+                          ],
                         ),
-                        actions: [
-                          TextButton(
-                            onPressed: () =>
-                                Navigator.pop(context, false),
-                            child: const Text("Cancel"),
-                          ),
-                          FilledButton(
-                            onPressed: () =>
-                                Navigator.pop(context, true),
-                            child: const Text("Delete"),
-                          ),
-                        ],
                       ),
-                    );
-
-                    if (confirm == true) {
-                      await provider.deleteTask(doc.id);
-                    }
-                    break;
-                }
-              },
-              itemBuilder: (_) => [
-                const PopupMenuItem<String>(
-                  value: "view",
-                  child: Row(
-                    children: [
-                      Icon(Icons.visibility_outlined),
-                      SizedBox(width: 12),
-                      Text("View Task"),
-                    ],
-                  ),
-                ),
-                PopupMenuItem<String>(
-                  value: "mark",
-                  child: Row(
-                    children: [
-                      Icon(
-                        completed
-                            ? Icons.radio_button_unchecked
-                            : Icons.check_circle_outline,
+                      PopupMenuItem<String>(
+                        value: "mark",
+                        child: Row(
+                          children: [
+                            Icon(
+                              completed
+                                  ? Icons.radio_button_unchecked
+                                  : Icons.check_circle_outline,
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              completed
+                                  ? "Mark as Pending"
+                                  : "Mark as Completed",
+                            ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(width: 12),
-                      Text(
-                        completed
-                            ? "Mark as Pending"
-                            : "Mark as Completed",
+                      const PopupMenuDivider(),
+                      const PopupMenuItem<String>(
+                        value: "delete",
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete_outline, color: Colors.red),
+                            SizedBox(width: 12),
+                            Text("Delete", style: TextStyle(color: Colors.red)),
+                          ],
+                        ),
                       ),
                     ],
                   ),
                 ),
-                const PopupMenuDivider(),
-                const PopupMenuItem<String>(
-                  value: "delete",
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.delete_outline,
-                        color: Colors.red,
-                      ),
-                      SizedBox(width: 12),
-                      Text(
-                        "Delete",
-                        style: TextStyle(color: Colors.red),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  },
-),
+              );
+            },
+          );
+        },
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddTaskBottomSheet(context),
         icon: const Icon(Icons.add),

@@ -144,7 +144,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         title: const Text("Settings"),
         actions: [
           IconButton(onPressed: _handleLogout, icon: const Icon(Icons.logout)),
-          IconButton(onPressed: _handleLogout, icon: const Icon(Icons.logout)),
+          IconButton(onPressed: _handleLogout, icon: const Icon(Icons.notification_add)),
         ],
       ),
       body: Center(
@@ -165,7 +165,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: _selectedImage == null
                       ? const Icon(Icons.person, size: 90, color: Colors.grey)
                       : Image.file(_selectedImage!, fit: BoxFit.cover),
-                ),
+                ),  
               ),
 
               const SizedBox(height: 30),

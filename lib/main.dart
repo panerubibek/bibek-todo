@@ -6,11 +6,17 @@ import 'package:ncmt_bibek/providers/auth_provider.dart';
 import 'package:ncmt_bibek/providers/task_provider.dart';
 import 'package:ncmt_bibek/screens/dashboard.dart';
 import 'package:ncmt_bibek/screens/login_screen.dart';
+import 'package:ncmt_bibek/services/notification/notification_service.dart';
 import 'package:provider/provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await NotificationService.instance.initializeTimeZone();
+
+await NotificationService.instance.initialize();
+
+await NotificationService.instance.requestPermission();
   runApp(
     MultiProvider(
       providers: [
