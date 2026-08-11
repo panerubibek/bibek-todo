@@ -3,17 +3,25 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:ncmt_bibek/firebase_options.dart';
 import 'package:ncmt_bibek/providers/auth_provider.dart';
+import 'package:ncmt_bibek/providers/task_provider.dart';
 import 'package:ncmt_bibek/screens/dashboard.dart';
 import 'package:ncmt_bibek/screens/login_screen.dart';
+import 'package:ncmt_bibek/services/notification/notification_service.dart';
 import 'package:provider/provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await NotificationService.instance.initializeTimeZone();
+
+await NotificationService.instance.initialize();
+
+await NotificationService.instance.requestPermission();
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => AuthenticationProvider()),
+        ChangeNotifierProvider(create: (context) => TaskProvider(),)
       ],
       child: MyApp(),
     ),
@@ -36,6 +44,9 @@ class AuthWrapper extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
+          print("Connection: ${snapshot.connectionState}");
+        print("Has Data: ${snapshot.hasData}");
+        print("User: ${snapshot.data}");
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const CircularProgressIndicator();
         }
