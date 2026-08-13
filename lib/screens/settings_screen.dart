@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ncmt_bibek/providers/auth_provider.dart';
+import 'package:ncmt_bibek/providers/theme_providers.dart';
 import 'package:ncmt_bibek/screens/login_screen.dart';
 import 'package:provider/provider.dart';
 
@@ -33,8 +34,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+     final themeProvider = context.watch<ThemeProvider>();
+
     return Scaffold(
       appBar: AppBar(
+        title: AppBar(
+          title: Text("Settings"),
+        ),
         actions: [
           IconButton(
             onPressed: () {
@@ -44,6 +50,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ],
       ),
+      body:ListTile(
+        leading: Icon(
+          themeProvider.isDarkMode
+              ? Icons.dark_mode
+              : Icons.light_mode,
+        ),
+
+        title: const Text('Dark Mode'),
+
+        trailing: Switch(
+          value: themeProvider.isDarkMode,
+          onChanged: (_) {
+            context.read<ThemeProvider>().toggleTheme();
+          },
+        ),
+      ), 
     );
   }
 }

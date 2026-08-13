@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:ncmt_bibek/firebase_options.dart';
 import 'package:ncmt_bibek/providers/auth_provider.dart';
 import 'package:ncmt_bibek/providers/task_provider.dart';
+import 'package:ncmt_bibek/providers/theme_providers.dart';
 import 'package:ncmt_bibek/screens/dashboard.dart';
 import 'package:ncmt_bibek/screens/login_screen.dart';
+import 'package:ncmt_bibek/theme/app_theme.dart';
 import 'package:provider/provider.dart';
 
 void main() async {
@@ -15,7 +17,8 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => AuthenticationProvider()),
-        ChangeNotifierProvider(create: (context) => TaskProvider(),)
+        ChangeNotifierProvider(create: (context) => TaskProvider(),),
+        ChangeNotifierProvider(create: (context) => ThemeProvider(),)
       ],
       child: MyApp(),
     ),
@@ -26,7 +29,11 @@ class MyApp extends StatelessWidget {
   const MyApp({super.key});
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(home: AuthWrapper());
+    return MaterialApp(home: AuthWrapper(),
+    theme: AppTheme.lightTheme,
+    darkTheme: AppTheme.darkTheme,
+    themeMode: context.watch<ThemeProvider>().isDarkMode ? ThemeMode.dark : ThemeMode.light,
+    );
   }
 }
 
@@ -38,7 +45,7 @@ class AuthWrapper extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-          print("Connection: ${snapshot.connectionState}");
+        print("Connection: ${snapshot.connectionState}");
         print("Has Data: ${snapshot.hasData}");
         print("User: ${snapshot.data}");
         if (snapshot.connectionState == ConnectionState.waiting) {

@@ -65,7 +65,8 @@ Future<void> _handleLogin() async {
         ),
         child: Container(
           decoration: BoxDecoration(
-            color: whiteColor,
+            // color: whiteColor,
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(20),
           ),
           width: double.infinity,
@@ -163,7 +164,12 @@ Future<void> _handleLogin() async {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text('Dont have an account?'),
+                            Text('Dont have an account?',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface
+                              // color: Theme.of(context).colorScheme.
+                            ),
+                            ),
                             TextButton(
                               child: Text(
                                 'Register',
